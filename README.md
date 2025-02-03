@@ -4,29 +4,26 @@ author: "Jorge González Campos"
 
 # **Introdución**
 
-::: {align="justify"}
 La modelación de caracteres morfológicos y fisiológicos en especies leñosas en relación con variables climáticas es fundamental para comprender su adaptación y respuesta al cambio ambiental.
 
 Mediante modelos de nicho ecológico, técnicas de machine learning y simulaciones ecofisiológicas, es posible predecir patrones de crecimiento y distribución de las especies bajo diferentes escenarios climáticos.
 
 Esta información es esencial para la gestión forestal, permitiendo seleccionar genotipos mejor adaptados, optimizar estrategias de silvicultura y diseñar planes de conservación eficaces. Además, la modelación facilita la identificación de áreas de alto riesgo por el cambio climático y contribuye a la planificación de corredores ecológicos que favorezcan la migración de especies en respuesta a nuevas condiciones ambientales. En un contexto de creciente variabilidad climática, integrar estos modelos en la toma de decisiones permite una gestión sostenible de los bosques y sus recursos genéticos.
-:::
+
 
 ## **1. Rasgos de plantas**
 
-::: {align="justify"}
+
 Los rasgos funcionales de las plantas son características que definen su forma, función y estrategias ecológicas. Estan estrechamente vinculados a gradientes ambientales, como el clima y las propiedades del suelo
 
 Estos rasgos son esenciales en modelos de vegetación y en modelos acoplados clima-vegetación, permitiendo un análisis adecuado de la dinámica de las pobalciones de una especie vegetal bajo el cambio global.
-:::
 
 ### Caso de estudio: *Araucaria araucana*
 
-::: {align="justify"}
 El Pehuén o Araucaria (*Araucaria araucana* (Molina) K. Koch) es una de las coníferas nativas más longevas de los bosques templados de Chile y Argentina, reconocida por su incuestionable valor cultural, social y ecológico. Esta especie posee una distribución disyuntiva, con dos poblaciones localizadas en la Cordillera de la Costa y otras en la Cordillera de los Andes, abarcando un rango que va desde los 37° 20'S hasta los 40°20'S (Bekessy et al., 2004).
 
 ![Reserva Nacional Malalcahuello, Región de la La Araucanía, Chile.](images/IMG_20210518_221701_840.jpg)
-:::
+
 
 ::: tip
 📌 **Consejo 1: Organiza tu Directorio de Trabajo**
