@@ -1,14 +1,6 @@
----
-title: "Como usar datos climaticos para modelar variables morfologicas y fisiologicas Caso"
+# **Como usar datos climaticos para modelar variables morfologicas y fisiologicas Caso**
 author: "Jorge González Campos"
-date: "2024-12-18"
-output:
-  html_document:
-    toc: true            # Activa el índice
-    toc_float: false      # Hace el índice flotante
-    toc_position: left   # Posiciona el índice a la izquierda
-    css: "styles.css"    # Enlaza un archivo CSS personalizado (opcional)
----
+
 
 # **Introdución**
 
