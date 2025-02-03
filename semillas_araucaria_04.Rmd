@@ -1,0 +1,954 @@
+---
+title: "Como usar datos climaticos para modelar variables morfologicas y fisiologicas Caso"
+author: "Jorge González Campos"
+date: "2024-12-18"
+output:
+  html_document:
+    toc: true            # Activa el índice
+    toc_float: false      # Hace el índice flotante
+    toc_position: left   # Posiciona el índice a la izquierda
+    css: "styles.css"    # Enlaza un archivo CSS personalizado (opcional)
+---
+
+# **Introdución**
+
+::: {align="justify"}
+La modelación de caracteres morfológicos y fisiológicos en especies leñosas en relación con variables climáticas es fundamental para comprender su adaptación y respuesta al cambio ambiental.
+
+Mediante modelos de nicho ecológico, técnicas de machine learning y simulaciones ecofisiológicas, es posible predecir patrones de crecimiento y distribución de las especies bajo diferentes escenarios climáticos.
+
+Esta información es esencial para la gestión forestal, permitiendo seleccionar genotipos mejor adaptados, optimizar estrategias de silvicultura y diseñar planes de conservación eficaces. Además, la modelación facilita la identificación de áreas de alto riesgo por el cambio climático y contribuye a la planificación de corredores ecológicos que favorezcan la migración de especies en respuesta a nuevas condiciones ambientales. En un contexto de creciente variabilidad climática, integrar estos modelos en la toma de decisiones permite una gestión sostenible de los bosques y sus recursos genéticos.
+:::
+
+## **1. Rasgos de plantas**
+
+::: {align="justify"}
+Los rasgos funcionales de las plantas son características que definen su forma, función y estrategias ecológicas. Estan estrechamente vinculados a gradientes ambientales, como el clima y las propiedades del suelo
+
+Estos rasgos son esenciales en modelos de vegetación y en modelos acoplados clima-vegetación, permitiendo un análisis adecuado de la dinámica de las pobalciones de una especie vegetal bajo el cambio global.
+:::
+
+### Caso de estudio: *Araucaria araucana*
+
+::: {align="justify"}
+El Pehuén o Araucaria (*Araucaria araucana* (Molina) K. Koch) es una de las coníferas nativas más longevas de los bosques templados de Chile y Argentina, reconocida por su incuestionable valor cultural, social y ecológico. Esta especie posee una distribución disyuntiva, con dos poblaciones localizadas en la Cordillera de la Costa y otras en la Cordillera de los Andes, abarcando un rango que va desde los 37° 20'S hasta los 40°20'S (Bekessy et al., 2004).
+
+![Reserva Nacional Malalcahuello, Región de la La Araucanía, Chile.](images/IMG_20210518_221701_840.jpg)
+:::
+
+::: tip
+📌 **Consejo 1: Organiza tu Directorio de Trabajo**
+
+Mantener un directorio de trabajo bien estructurado es clave para ahorrar `tiempo` y evitar confusiones. Define una carpeta específica para tu proyecto y almacena en ella todos los archivos relacionados, como datos, scripts y resultados. Esto facilitará la gestión y evitará pérdidas de información en el futuro.
+:::
+
+Usa `setwd("ruta/del/proyecto")` en R para establecer tu directorio de trabajo.
+
+```{r echo=FALSE, warning=FALSE, results='hide'}
+
+rm(list = ls()) # Reiniciar el entorno
+gc() # Limpiar memoria
+```
+
+```{r, echo=FALSE}
+
+knitr::opts_knit$set(root.dir = "C:/Users/jmgon/OneDrive - Instituto Forestal/INFOR/6. Proyectos Finalizados/Proyecto SIMEF Araucaria araucana/5. Bases de Datos/Semillas")
+
+```
+
+## 🔍 Paso 1: Visualización del problema
+
+::: {align="justify"}
+Los datos generalmente están organizados en una tabla, ¿cierto? Seguramente tomaste varias mediciones de diferentes rasgos en individuos de las distintas poblaciones que visitaste. Estos rasgos, casi siempre, son de naturaleza morfológica y/o fisiológica.
+
+| Pop  | Rasgo 1 | Rasgo 2 | Rasgo 3 | Latitud | Longitud |
+|------|---------|---------|---------|---------|----------|
+| pop1 | 10.5    | 3.4     | 8.1     | -38.5   | -73.2    |
+| pop1 | 12.3    | 3.1     | 7.5     | -38.6   | -73.3    |
+| pop1 | 11.8    | 3.3     | 8.2     | -38.7   | -73.4    |
+| pop2 | 9.7     | 4.0     | 6.9     | -38.2   | -73.5    |
+| pop2 | 8.9     | 4.1     | 7.0     | -38.1   | -73.6    |
+| pop2 | 10.1    | 4.2     | 6.8     | -38.0   | -73.7    |
+| pop3 | 13.2    | 5.5     | 9.0     | -39.0   | -74.0    |
+| pop3 | 14.1    | 5.1     | 8.5     | -39.1   | -74.1    |
+| pop3 | 12.8    | 5.3     | 9.1     | -39.2   | -74.2    |
+:::
+
+Para analizarlos de manera eficiente, es útil separar el flujo de trabajo en **dos procesos paralelos**:
+
+1️⃣ **Análisis estadístico de tendencias en los rasgos** 2️⃣ **Procesamiento de datos geoespaciales** 📍
+
+Estos dos enfoques se trabajarán por separado y luego se integrarán para una comprensión más completa.
+
+## 🔍 Paso 2: Tendencias de los rasgos
+
+::: {align="justify"}
+Comencemos con el análisis estadístico de tendencias en los rasgos,. Si tus datos incluyen múltiples localidades o poblaciones 📍, es clave analizar cómo varían los rasgos en cada una. Para ello, un **gráfico de Ridgeline** 📈 es una excelente opción, ya que permite visualizar la distribución de los rasgos en cada población, mostrando su dispersión y diferencias. Puedes usar el paquete ggridges
+
+```{r warning=FALSE}
+library(ggridges)
+```
+
+Antes de realizar pruebas estadísticas, es fundamental comprender la distribución de los datos y la medida de tendencia central más adecuada🎯 :
+:::
+
+::: tip
+📌 Consejo 2:
+
+Visualizar la distribución de los rasgos te ayudará a tomar mejores decisiones sobre qué pruebas estadísticas utilizar, asegurando un análisis más preciso y robusto. 🚀
+:::
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+library(ggplot2)  # Para crear gráficos y visualizaciones
+library(dplyr)    # Para manipulación de datos 
+library(giscoR)   # Para descargar y trabajar con datos geoespaciales
+library(maps)     # Para acceder a datos de mapas geográficos
+library(readxl)   # Para leer archivos de Excel (.xlsx) en R
+
+```
+
+```{r, echo=FALSE, results='hide'}
+## 1. Carga de datos
+# Cargamos y revisamos los datos 
+data_sem_imputado <- read_excel("C:/Users/jmgon/OneDrive - Instituto Forestal/INFOR/6. Proyectos Finalizados/Proyecto SIMEF Araucaria araucana/5. Bases de Datos/Semillas/data_sem_imputado.xlsx")
+
+data_sem_imputado
+```
+
+```{r, echo=FALSE, results='hide'}
+# Renombrar manualmente las columnas
+data_sem_imputado <- data_sem_imputado %>%
+  rename(
+    rasgo1 = viabilidad_tz,
+    rasgo2 = sem_semb,
+    rasgo3 = sem_germe19,
+    rasgo4 = porgerm_e19,
+    rasgo5 = sem_germo18,
+    rasgo6 = porgerm_o18,
+    rasgo7 = ls_sem,
+    rasgo8 = asm_sem,
+    rasgo9 = abs_sem,
+    rasgo10 = ps_sem,
+    rasgo11 = sk_sem,
+    rasgo12 = tam_embrio,
+    rasgo13 = anch_embrio,
+    rasgo14 = tam_anch_embrio
+  )
+
+# Verificar los nuevos nombres de las columnas
+names(data_sem_imputado)
+
+```
+
+::: {align="justify"}
+🌱 En este ejemplo, el rasgo en análisis corresponde al largo del embrión en las semillas de Araucaria araucana. Este parámetro morfológico es un indicador interno del desarrollo 🌟 que ocurre a lo largo de casi dos años. Por ello, las variaciones observadas en este rasgo pueden reflejar tanto la influencia de las condiciones ambientales locales 🏞️ como la diversidad intrapoblacional 🌿.
+
+En el gráfico, es evidente que ni la media 🔵 ni la mediana 🔴 representan adecuadamente a las poblaciones costeras 🌊 ni a la población más al norte de los Andes 🏔️. Esto sugiere la presencia de patrones diferenciados entre los grupos.
+
+🔍 Este hallazgo preliminar nos indica que es necesario separar los datos en dos subconjuntos para un análisis más detallado y específico. Por lo tanto, en este caso, procederemos a trabajar con las poblaciones de la costa 🌊 y los Andes 🏔️ de manera independiente, permitiendo una mejor comprensión de las variaciones dentro de macrozona.
+
+Al ver todas las localidades en conjunto. Se observan las tendencias centrales s:
+
+-   **Media**: 3.15 🔵
+-   **Mediana**: 3.10 🔴
+-   **Moda**: 2.77 🟣
+
+La **distribución** del rasgo 12 muestra una ligera asimetría, con la **media** siendo algo más alta que la **mediana**, lo que indica una leve inclinación hacia los valores más altos. Es de esperar considerando que la media es afectada por valores extremos , tales como los que se aprencian en la figura.
+
+La **moda** es considerablemente más baja que la media y la mediana, lo que sugiere que una gran parte de las observaciones están agrupadas en torno a un valor más b
+:::
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# Cargar librerías necesarias
+library(ggplot2)
+library(ggridges)  # Para gráficas de ridgeline
+library(dplyr)
+library(glue)
+
+# Función para calcular la moda
+get_mode <- function(x) {
+  uniq_vals <- unique(x[!is.na(x)])  # Eliminar valores NA
+  uniq_vals[which.max(tabulate(match(x, uniq_vals)))]  # Devolver el valor más frecuente
+}
+
+
+# Función de configuración
+establecer_configuracion <- function() {
+  list(
+    orden_localidades = c("NAH", "VIL", "RAL", "CON", "NAL", "MAL", "LON", "ICA", "HUE", "VIR"),
+    colores_localidades = setNames(
+      c("#c7e9b4", "#7fcdbb", "#41b6c4", "#1d91c0", "#225ea8", "#feb24c", "#fd8d3c", "#f03b20", "#bd0026", "#800026"),
+      c("NAH", "VIL", "RAL", "CON", "NAL", "MAL", "LON", "ICA", "HUE", "VIR")
+    ),
+    traits = paste0("rasgo", 1:14),
+    font_family = "sans",
+    bg_color = "white"
+  )
+}
+
+# Función de preparación de datos
+preparar_datos <- function(data, traits, orden_localidades) {
+  data %>% 
+    mutate(
+      across(all_of(traits), ~as.numeric(as.character(.))),
+      Localidad = factor(localidad2, levels = rev(orden_localidades))
+    ) %>% 
+    filter(if_all(all_of(traits), ~!is.na(.)))
+}
+
+# Función para generar gráfico
+generar_grafico <- function(data, trait, colores_localidades, font_family, bg_color, general_mean, general_median, general_mode) {
+  ggplot(data, aes(x = !!sym(trait), y = Localidad, fill = Localidad)) +
+    geom_density_ridges(alpha = 0.7) + 
+    geom_vline(xintercept = general_mean, color = "blue", linetype = "dashed", size = 1) +
+    geom_vline(xintercept = general_median, color = "red", linetype = "dashed", size = 1) +
+    geom_vline(xintercept = general_mode, color = "#8E66C1", linetype = "dashed", size = 1) +
+    scale_fill_manual(values = colores_localidades) +
+    labs(
+      title = glue("Distribución de {trait} por localidad"),
+      subtitle = glue("Media: {round(general_mean, 2)} | Mediana: {round(general_median, 2)} | Moda: {round(general_mode, 2)}"),
+      x = trait,
+      y = "Localidad"
+    ) +
+    theme_minimal(base_family = font_family) +
+    theme(
+      plot.background = element_rect(fill = bg_color),
+      panel.grid = element_blank(),
+      plot.title = element_text(size = 12),
+      plot.subtitle = element_text(size = 10),
+      axis.text.y = element_text(hjust = 0),
+      legend.position = "right"
+    )
+}
+
+# Preparar los datos
+config <- establecer_configuracion()
+data_prep <- preparar_datos(data_sem_imputado, config$traits, config$orden_localidades)
+
+# Calcular las estadísticas (media, mediana, moda) para rasgo12
+general_mean <- mean(data_prep$rasgo12, na.rm = TRUE)
+general_median <- median(data_prep$rasgo12, na.rm = TRUE)
+general_mode <- get_mode(data_prep$rasgo12)
+
+# Generar gráfico para rasgo12
+graficos_todos <- list()
+graficos_todos[[12]] <- generar_grafico(
+  data = data_prep, 
+  trait = "rasgo12", 
+  colores_localidades = config$colores_localidades, 
+  font_family = config$font_family, 
+  bg_color = config$bg_color, 
+  general_mean = general_mean, 
+  general_median = general_median, 
+  general_mode = general_mode
+)
+
+# Mostrar gráfico
+print(graficos_todos[[12]])
+
+```
+
+```{r, echo=FALSE}
+library(dplyr)
+library(glue)
+
+# Función de configuración
+establecer_configuracion <- function() {
+  list(
+    orden_localidades = c("NAH", "VIL", "RAL", "CON", "NAL", "MAL", "LON", "ICA", "HUE", "VIR"),
+    colores_localidades = setNames(
+      c("#c7e9b4", "#7fcdbb", "#41b6c4", "#1d91c0", "#225ea8", "#feb24c", "#fd8d3c", "#f03b20", "#bd0026", "#800026"),
+      c("NAH", "VIL", "RAL", "CON", "NAL", "MAL", "LON", "ICA", "HUE", "VIR")
+    ),
+    traits = paste0("rasgo", 1:14),
+    font_family = "sans",
+    bg_color = "white"
+  )
+}
+
+# Función de preparación de datos
+preparar_datos <- function(data, traits, orden_localidades) {
+  data %>% 
+    mutate(
+      across(all_of(traits), ~as.numeric(as.character(.))),
+      Localidad = factor(localidad2, levels = rev(orden_localidades))
+    ) %>% 
+    filter(if_all(all_of(traits), ~!is.na(.)))
+}
+
+# Función para generar gráfico
+generar_grafico <- function(data, trait, colores_localidades, font_family, bg_color, general_mean, general_median, general_mode) {
+  ggplot(data, aes(x = !!sym(trait), y = Localidad, fill = Localidad)) +
+    geom_density_ridges(alpha = 0.7) + 
+    geom_vline(xintercept = general_mean, color = "blue", linetype = "dashed", size = 1) +
+    geom_vline(xintercept = general_median, color = "red", linetype = "dashed", size = 1) +
+    geom_vline(xintercept = general_mode, color = "#8E66C1", linetype = "dashed", size = 1) +
+    scale_fill_manual(values = colores_localidades) +
+    labs(
+      title = glue("Distribución de {trait} por localidad"),
+      subtitle = glue("Media: {round(general_mean, 2)} | Mediana: {round(general_median, 2)} | Moda: {round(general_mode, 2)}"),
+      x = trait,
+      y = "Localidad"
+    ) +
+    theme_minimal(base_family = font_family) +
+    theme(
+      plot.background = element_rect(fill = bg_color),
+      panel.grid = element_blank(),
+      plot.title = element_text(size = 12),
+      plot.subtitle = element_text(size = 10),
+      axis.text.y = element_text(hjust = 0),
+      legend.position = "right"
+    )
+}
+
+# Preparar los datos
+config <- establecer_configuracion()
+
+# Filtrar por macrozona y preparar los datos
+data_costa <- data_sem_imputado %>% filter(macrozona == "Costa")
+data_andes <- data_sem_imputado %>% filter(macrozona == "Andes")
+
+# Preparar datos para cada macrozona
+data_costa_prep <- preparar_datos(data_costa, config$traits, config$orden_localidades)
+data_andes_prep <- preparar_datos(data_andes, config$traits, config$orden_localidades)
+
+# Calcular las estadísticas para rasgo12 en Costa
+costa_mean <- mean(data_costa_prep$rasgo12, na.rm = TRUE)
+costa_median <- median(data_costa_prep$rasgo12, na.rm = TRUE)
+costa_mode <- get_mode(data_costa_prep$rasgo12)
+
+# Calcular las estadísticas para rasgo12 en Andes
+andes_mean <- mean(data_andes_prep$rasgo12, na.rm = TRUE)
+andes_median <- median(data_andes_prep$rasgo12, na.rm = TRUE)
+andes_mode <- get_mode(data_andes_prep$rasgo12)
+
+# Generar gráficos para cada macrozona (solo rasgo12)
+graficos_todos <- list()
+
+# Gráfico para Costa
+graficos_todos$costa <- generar_grafico(
+  data = data_costa_prep, 
+  trait = "rasgo12", 
+  colores_localidades = config$colores_localidades, 
+  font_family = config$font_family, 
+  bg_color = config$bg_color, 
+  general_mean = costa_mean, 
+  general_median = costa_median, 
+  general_mode = costa_mode
+)
+
+# Gráfico para Andes
+graficos_todos$andes <- generar_grafico(
+  data = data_andes_prep, 
+  trait = "rasgo12", 
+  colores_localidades = config$colores_localidades, 
+  font_family = config$font_family, 
+  bg_color = config$bg_color, 
+  general_mean = andes_mean, 
+  general_median = andes_median, 
+  general_mode = andes_mode
+)
+
+```
+
+### 🧬 Subgrupo 1: Localidades costeras
+
+::: {align="justify"}
+El primero de este grupo lo refresenatn las localidades costeras🌊 de *Araucaria*, incluidas **NAH** y **VIL** Los valores de las estadísticas son:
+
+-   **Media**: 2.72 🔵
+-   **Mediana**: 2.84 🔴
+-   **Moda**: 2.84 🟣
+
+La distribución de **rasgo12** en las localidades costeras muestra una tendencia hacia una distribución relativamente simétrica y homogénea, con valores más concentrados cerca de la **mediana** y la **moda**. La **media** y la **mediana** coinciden estrechamente, lo que indica una distribución centrada alrededor de estos valores. Este patrón sugiere que las localidades costeras tienen características relativamente consistentes, sin valores atípicos que influyan en la forma de la distribución.
+:::
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Mostrar los gráficos
+print(graficos_todos$costa)
+
+```
+
+### 🧬 Subgrupo 2: Localidades andinas
+
+::: {align="justify"}
+En grupo **macrozona Andes**🏔, los resultados de las estadísticas son:
+
+-   **Media**: 3.25 🔵
+-   **Mediana**: 3.29 🔴
+-   **Moda**: 2.77 🟣
+
+En otras palabras, la distribución de los datos es **asimétrica** y sesgada hacia la derecha (positiva), dado que la media es más baja que la mediana, lo que sugiere que hay un grupo de valores más altos que influyen en la media.
+
+La moda más baja (2.77) refleja que un conjunto significativo de observaciones se encuentran en torno a este valor, lo que puede indicar que una porción de las localidades tiene un comportamiento similar o valores más bajos en este rasgo.
+
+Este patrón confirma la presencia de dos grupos de localidades o poblaciones con características diferentes, y se puede considerar un análisis adicional para investigar por qué ciertos datos tienden a concentrarse en torno a la moda más baja, mientras que otros valores más altos afectan la media.
+:::
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Mostrar los gráficos
+
+print(graficos_todos$andes)
+```
+
+::: {align="justify"}
+El análisis y la visualización de las **distribuciones** de los datos son herramientas clave en la comprensión profunda de las características de un conjunto de datos. Aunque las **tendencias centrales** (como la media, la mediana y la moda) ofrecen un resumen útil de los datos, **la distribución completa** permite una interpretación más rica, ya que muestra la **forma** de los datos, la **dispersion** y la posible **asimetría**.
+
+Los **valores atípicos** pueden distorsionar las estadísticas de tendencia central. Analizando la distribución, podemos identificar y tratar estos valores de forma más adecuada.
+:::
+
+::: tip
+📌 Consejo 3:
+
+Las distribuciones permiten detectar patrones de comportamiento que no siempre son evidentes cuando solo se analizan las estadísticas centrales. Por ejemplo, es posible identificar **sesgos**, **valores atípicos** o **multimodalidad** (cuando hay más de un pico en la distribución) que podrían influir en las conclusiones.
+:::
+
+Si se quiere hacer una comparación más formal entre distribuciones, se pueden usar pruebas estadísticas como la **prueba de Kolmogórov-Smirnov**, que compara la forma de dos distribuciones, o la **prueba de Mann-Whitney U**, que evalúa si dos distribuciones provienen de la misma población sin asumir normalidad.
+
+## 🔍 Paso 3: Bases de datos geograficas
+
+::: {align="justify"}
+Para el Procesamiento de datos geoespaciales, vamos a trabajar con el polígono geoespacial de **Chile**, que define los límites del país. Los datos provienen de **GISCO**, una fuente confiable de información geográfica. El archivo lo guardamos en formato **RDS**, que es un formato optimizado para trabajar con datos en R. Este tipo de archivo es perfecto para almacenar objetos grandes, como los datos geoespaciales, porque guarda tanto la información como la estructura del objeto de forma eficiente.
+
+Este código en R permite descargar y almacenar localmente el polígono de Chile utilizando la librería `giscoR`. Primero, se define el nombre del archivo donde se guardará el polígono (`chile_polygon.rds`). Luego, se intenta cargar desde el archivo local mediante `readRDS()`. Si el archivo no existe o hay un error al cargarlo, se descarga directamente desde `gisco_get_countries()` con una resolución ajustable. Posteriormente, se guarda localmente para futuras ejecuciones con `saveRDS()`, evitando descargas innecesarias y permitiendo el uso del archivo sin conexión a internet. Finalmente, se imprime el polígono cargado o descargado para verificar su estructura. Este enfoque optimiza el tiempo de ejecución y garantiza la disponibilidad del archivo en cualquier momento.
+:::
+
+::: tip
+📌 Consejo 4:
+
+Guardar el archivo localmente tiene varias ventajas que hacen la vida mucho más fácil.No tenemos que perder tiempo descargándolo cada vez que corremos el código. ¡Esto es un ahorro de tiempo en cada ejecución!. Además,si guardamos el archivo en nuestro equipo, no necesitamos una conexión a internet para acceder a los datos.
+:::
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+library(giscoR)
+library(sf)
+
+# Definir el nombre del archivo donde se guardará el polígono
+archivo_poligono <- file.path(getwd(), "chile_polygon.rds")
+
+# Intentar cargar el archivo
+CL <- tryCatch(
+  readRDS(archivo_poligono),
+  error = function(e) {
+    message("⚠️ No se pudo cargar el polígono desde el archivo. Se procederá a descargarlo.")
+    return(NULL)
+  }
+)
+
+# Si la carga falló, descargarlo nuevamente
+if (is.null(CL)) {
+  CL <- gisco_get_countries(
+    country = "CL", 
+    resolution = 3,  # Ajusta la resolución según sea necesario
+    cache = TRUE,
+    update_cache = FALSE
+  )
+
+  # Guardar el archivo para futuras ejecuciones
+  saveRDS(CL, archivo_poligono)
+  message("✅ Polígono de Chile descargado y guardado correctamente.")
+} else {
+  message("✅ Polígono de Chile cargado desde archivo local.")
+}
+
+# Verificar la estructura del objeto cargado
+print(CL)
+
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+### Obtener el polígono de Chile
+CL <- gisco_get_countries(country = "CL", resolution = 3, update_cache = TRUE)
+
+```
+
+```{r echo=FALSE, message=TRUE, warning=FALSE, results='hide'}
+### 5. Datos random
+# Seleccionar una fila al azar por localidad
+data_random <- data_sem_imputado %>%
+  group_by(localidad2) %>%
+  slice_sample(n = 1) %>%  # Seleccionar una fila al azar por grupo
+  ungroup()  # Desagrupar para evitar problemas en el futuro
+
+# Mostrar las primeras filas del resultado
+print(data_random)
+
+```
+
+::: {align="justify"}
+Una vez descargado el archivo, puedes filtrar coordenadas específicas y generar mapas de manera eficiente para análisis geoespacial.
+
+Utilizamos la librería `giscoR` para obtener el polígono de Chile, lo que permite ubicar visualmente las localidades dentro del mapa. Posteriormente, definimos una función que selecciona datos dentro de un rango de coordenadas determinado, simplificando el manejo y análisis de las observaciones geográficas.
+
+Con estos datos, se pueden generar mapas que superponen puntos representativos de cada localidad sobre el polígono de Chile. Además, al aplicar una paleta de colores personalizada para diferenciar cada ubicación y añadir etiquetas con los nombres de las localidades, se facilita la interpretación visual. Esto permite identificar rápidamente patrones espaciales en la distribución de las observaciones.
+
+Además, la posibilidad de mapear un rasgo específico, como en el ejemplo, resulta particularmente útil para: - **Visualizar la distribución espacial**: Identificar áreas con valores altos o bajos de una variable. - **Detectar patrones espaciales**: Evaluar si ciertos valores del rasgo están concentrados en regiones específicas. - **Relacionar variables con el entorno**: Explorar posibles vínculos entre los valores de la variable y factores climáticos o ambientales.
+
+Este enfoque no solo mejora la visualización de la distribución de las poblaciones o rasgos de interés, sino que también facilita la toma de decisiones en estudios de biodiversidad, conservación y modelamiento ecológico, permitiendo analizar relaciones espaciales y patrones geográficos.
+:::
+
+```{r, eval=FALSE}
+# Cargar librerías 
+library(giscoR)
+library(sf)  
+
+# Obtener el polígono de Chile
+CL <- gisco_get_countries(country = "CL", resolution = 3)
+
+# Filtrar datos en un rango de coordenadas específico
+datos %>%
+  filter(Latitudt >= -40 & Latitud <= -37,  Longitud  >= -74 & Longitud <= -70) %>%
+  group_by(Pop, Latitud,  Longitud ) %>%
+  summarise(rasgo1 = mean(rasgo1, na.rm = TRUE)) %>%
+  ungroup()
+
+# Seleccionar una fila al azar por localidad
+datos_random <- datos %>%
+  group_by(Pop) %>%
+  slice_sample(n = 1) %>%
+  ungroup()
+
+# Crear el mapa con puntos de rasgo12
+ggplot() +
+  geom_sf(datatos_random = CL, fill = "#d9d9d9", color = "black") +
+  geom_point(data = data_random, aes(x = Longitud , y = Latitud, color = rasgo1), size = 4, alpha = 0.8) +
+  scale_color_gradient(low = "blue", high = "red", name = "Rasgo 12") +
+  coord_sf(xlim = c(-74, -70), ylim = c(-40, -37)) +
+  theme_minimal() +
+  labs(title = "Distribución de Rasgo12 en Localidades de Chile",
+       x = "Longitud", y = "Latitud")
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, results='hide', fig.width=15, fig.height=10}
+# Cargar librerías necesarias
+library(ggplot2)
+library(dplyr)
+library(giscoR)
+library(sf)          # Para manejo de datos espaciales
+
+# Obtener el polígono de Chile
+CL <- gisco_get_countries(country = "CL", resolution = 3)
+
+# Definir el vector de traits
+traits <- paste0("rasgo", 1:14)
+
+# Función para filtrar y resumir datos
+filtrar_datos_chile <- function(data, lat_min, lat_max, lon_min, lon_max) {
+  data %>%
+    filter(lat >= lat_min & lat <= lat_max,     # Rango de latitudes
+           lon >= lon_min & lon <= lon_max) %>% # Rango de longitudes
+    group_by(localidad2, lat, lon) %>%
+    summarise(
+      rasgo1 = mean(rasgo1, na.rm = TRUE),    # Cambiar a rasgo1
+      rasgo12 = mean(rasgo12, na.rm = TRUE),  # Cambiar a rasgo12
+      rasgo13 = mean(rasgo13, na.rm = TRUE)   # Cambiar a rasgo13
+    ) %>%
+    ungroup()
+}
+
+# Filtrar datos dentro del rango específico
+data_filtrado <- filtrar_datos_chile(
+  data_sem_imputado, lat_min = -40, lat_max = -37, lon_min = -80, lon_max = -70
+)
+
+# Verificar si hay datos válidos
+if (nrow(data_filtrado) == 0) {
+  stop("No hay datos disponibles para el rango de coordenadas seleccionado.")
+}
+
+# Seleccionar una fila al azar por localidad para los puntos del mapa
+data_random <- data_filtrado %>%
+  group_by(localidad2) %>%
+  slice_sample(n = 1) %>%
+  ungroup()
+
+# Crear el mapa de Chile con etiquetas para cada localidad
+# Asegúrate de que la configuración esté correctamente cargada
+config <- establecer_configuracion()
+
+# Crear el mapa de Chile con etiquetas para cada localidad
+mapa <- ggplot() +
+  geom_sf(data = CL, fill = "#d9d9d9", color = "black") +   # Polígono de Chile
+  geom_point(data = data_random, 
+             aes(x = lon, y = lat, color = localidad2),     # Asignar color a los puntos por localidad
+             size = 5, alpha = 0.8) +                        # Puntos para localidades
+  geom_text(data = data_random, 
+            aes(x = lon, y = lat, label = localidad2, color = localidad2),  # Asignar color a las etiquetas
+            size = 3, vjust = -1) +                          # Ajustar posición y color de las etiquetas
+  coord_sf(xlim = c(-74, -70), ylim = c(-40, -37)) +          # Limitar la región de interés
+  scale_color_manual(values = config$colores_localidades,     # Usar colores definidos en la configuración
+                     name = "Localidad") +                   # Cambiar el nombre de la leyenda a "Localidad"
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),  # Título de mismo tamaño
+    plot.subtitle = element_text(size = 12, hjust = 0.5),
+    axis.title = element_text(size = 10)
+  ) +
+  labs(title = "Localidades de Araucaria araucana",
+       x = "Longitud", 
+       y = "Latitud")
+
+
+# Crear el mapa con puntos de rasgo12
+mapa2 <- ggplot() +
+  geom_sf(data = CL, fill = "#d9d9d9", color = "black") +
+  geom_point(data = data_random, aes(x = lon, y = lat, color = rasgo12), size = 4, alpha = 0.8) +
+  scale_color_gradient(low = "blue", high = "red", name = "Rasgo 12") +
+  coord_sf(xlim = c(-74, -70), ylim = c(-40, -37)) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),  # Título de mismo tamaño
+    plot.subtitle = element_text(size = 12, hjust = 0.5),
+    axis.title = element_text(size = 10)
+  ) +
+  labs(title = "Distribución de Rasgo12 en Localidades",
+       x = "Longitud",
+       y = "Latitud")
+
+# Mostrar los mapas en una sola visualización
+library(gridExtra)
+gridExtra::grid.arrange(mapa, mapa2, ncol = 2)
+
+```
+
+## 🔍 Paso 4: Base de datos climaticos
+
+::: {align="justify"}
+En cuanto a las bases de datos, existen algunas ampliamente utilizadas en proyectos de análisis climático, ecológico y geográfico. La elección dependerá de los objetivos específicos y de los resultados que desees obtener. A continuación, te presento las más usadas:
+
+**CHELSA (Climatologies at High Resolution for the Earth's Land Surface Areas)**
+
+CHELSA es un conjunto de datos climáticos de alta resolución (30 segundos de arco) que proporciona información sobre la temperatura, precipitación, humedad y otras variables climáticas para áreas terrestres a nivel global. Es especialmente útil para estudios de ecología, biogeografía y cambio climático, con datos de 1950 a la fecha.
+
+[![Climatologies at high resolution for the earth\'s land surface areas](images/chelsa.jpg){width="161" height="49"}](https://chelsa-climate.org/)
+
+**WorldClim**
+
+WorldClim es una de las bases de datos más utilizadas para estudios de modelado climático, ofreciendo datos históricos y de proyecciones futuras sobre variables climáticas globales, como temperatura, precipitación y humedad relativa. Los datos están disponibles a diferentes resoluciones espaciales, desde 1 km hasta 10 km, y cubren tanto condiciones actuales como escenarios futuros basados en modelos climáticos.
+
+[![](images/worldclim.jpg){width="162"}](https://www.worldclim.org/)
+
+**MODIS (Moderate Resolution Imaging Spectroradiometer)**
+
+MODIS es un instrumento satelital a bordo de los satélites Terra y Aqua de la NASA. Proporciona datos de observación de la tierra en una resolución moderada (250 m a 1 km) sobre variables como la cobertura terrestre, la temperatura de la superficie del mar, la radiación solar y otras características ambientales. Es utilizado ampliamente en estudios de uso del suelo, dinámica de ecosistemas y monitoreo de fenómenos climáticos globales.
+
+[![](images/modis.png){width="161"}](https://modis.gsfc.nasa.gov/)
+
+💡 Te explico cómo hacerlo.
+
+En este paso, descargaremos los datos climáticos desde la página oficial de **WorldClim**. Estos datos son fundamentales para realizar análisis ambientales y ecológicos. WorldClim ofrece un conjunto de **19 variables bioclimáticas**, que se derivan principalmente de las mediciones de temperatura y precipitación.
+
+Los datos se obtienen con una resolución espacial específica (en este caso, 2.5 minutos) y se almacenan en un directorio local para facilitar su acceso futuro. Una vez descargados, exploramos su estructura para identificar las 19 variables bioclimáticas disponibles. Si el análisis está enfocado en una región particular, como Chile, podemos recortar los datos utilizando un rango de coordenadas o un polígono que delimite el área de interés. Esto nos permite visualizar mapas y trabajar directamente con los datos en el área seleccionada. Por ejemplo, podemos extraer valores específicos de las variables para localidades particulares, facilitando su uso en análisis de biodiversidad, modelamiento ecológico o estudios climáticos. Este enfoque asegura que los datos sean relevantes y específicos para los objetivos del proyecto, optimizando su aplicación en investigaciones.
+:::
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+# 2. Descargar datos climáticos (ejemplo con raster para WorldClim)
+library(geodata)
+climate_data <- worldclim_global(
+  var = "bio", 
+  res = 2.5, 
+  path = "C:/Users/jmgon/OneDrive - Instituto Forestal/Lista de R Script/Script Proyecto Araucaria/worldclim_data"
+)
+```
+
+```{r, eval=FALSE}
+datos_climaticos <- worldclim_global(
+  var = "bio", 
+  res = 2.5, 
+  path = "~/worldclim_data"
+)
+```
+
+Donde:
+
+var = "bio": Especifica que se quieren descargar las variables bioclimáticas, que son un conjunto de 19 variables derivadas de la temperatura y precipitación.
+
+res = 2.5: Establece la resolución espacial de los datos. En este caso, se especifica una resolución de 2.5 minutos de arco (aproximadamente 4.5 km).
+
+path = "\~/worldclim_data": Indica la carpeta donde se almacenarán los archivos descargados.
+
+## 🔍 Paso 5: Extracción de valores de raster en puntos
+
+Utilizando las coordenadas geográficas de los localidades o poblaciones donde hiciste las colectas de datos, ylos datos climáticos del raster obtenido de wordclim, obtienes un conjunto de datos enriquecido que contiene tanto las características de ubicación (coordenadas geográficas) como las variables climáticas asociadas a cada punto. Esto te permite realizar análisis espaciales y ecológicos más completos.
+
+::: tip
+📌 Consejo 5:
+
+Es importante que las coordenadas de lat y lon coincidan entre los datos y el raster para que las variables climáticas se asocien correctamente a cada punto. Vamos a hacer un anal
+:::
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+
+coords <- data.frame(lon = data_filtrado$lon, lat = data_filtrado$lat)
+coords
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+data_filtrado <- data_filtrado[-241,]
+data_filtrado
+```
+
+```{r, echo=FALSE, results='hide'}
+climate_values <- extract(climate_data, coords)
+climate_values
+```
+
+```{r, echo=FALSE, results='hide'}
+
+climate_values<- na.omit(climate_values)
+climate_values
+
+```
+
+```{r, echo=FALSE, results='hide'}
+dim(climate_values)
+```
+
+```{r, echo=FALSE, results='hide'}
+
+# 4. Combinar variables climáticas con viabilidad_tz
+data_climate <- cbind(data_filtrado, climate_values)
+names(data_climate)
+data_climate
+```
+
+```{r, eval=FALSE}
+data_full <- cbind(datos_rasgos, datos_climaticos)
+
+```
+
+```{r, echo=FALSE, results='hide'}
+# Crear subconjunto para Costa
+data_costa <- subset(data_climate, localidad2 %in% c( "VIL", "NAH"))
+
+# Crear subconjunto para Andes
+data_andes <- subset(data_climate, localidad2 %in% c("RAL", "CON","NAL", "MAL", "LON", "ICA", "HUE", "VIR"))
+
+# Verificar los resultados
+head(data_costa)
+head(data_andes)
+
+```
+
+## 🔍 Paso 6: Análisis de Componentes Principales
+
+::: {align="justify"}
+El Análisis de Componentes Principales (PCA) es una técnica estadística clave cuando se trabaja con datos climáticos, ya que permite reducir la dimensionalidad de grandes volúmenes de datos mientras se conserva la mayor parte de la variabilidad.
+
+En este contexto, el PCA puede ser utilizado para analizar un conjunto de variables climáticas, como temperatura, precipitación, humedad, radiación solar, entre otras. Estas variables, que a menudo están altamente correlacionadas, se transforman en un conjunto más pequeño de componentes principales, los cuales son combinaciones lineales de las variables originales.
+
+Este enfoque facilita la identificación de patrones subyacentes en los datos, como los principales factores que explican las variaciones climáticas en distintas regiones geográficas. Al reducir las dimensiones de los datos climáticos, el PCA no solo simplifica el análisis, sino que también permite una mejor visualización y comprensión de la estructura espacial y temporal de los fenómenos climáticos.
+:::
+
+```{r echo=FALSE, warning=FALSE, results='hide'}
+# Realizar el PCA
+pca_result <- prcomp(data_andes[,c(8:26)], center = TRUE, scale. = TRUE)
+
+# Resumen del PCA
+summary(pca_result)
+
+```
+
+```{r, echo=FALSE, results='hide'}
+# Agregar los componentes principales al conjunto de datos original
+data_climate_full <- cbind(data_andes, pca_result$x)
+
+```
+
+::: {align="justify"}
+Podemos tener una visualización 3D que nos permita observar la relación entre los componentes principales (PC1, PC2, y PC3) y el rasgo quee estemos evaluando.
+
+💡 Te explico cómo hacerlo.
+
+Los ejes X, Y y Z del gráfico corresponden a los componentes principales (PC1, PC2 y PC3), lo que nos permite entender cómo se agrupan las observaciones en función de sus características climáticas.
+
+La escala de color azul (valores bajos) hasta rojo (valores altos), refleja la magnitud del rasgo "rasgo12" para cada observación. Este rasgo podría ser, por ejemplo, el tamaño de la semilla o alguna otra característica medida.
+
+Así, no solo estamos observando cómo se distribuyen las localidades en un espacio tridimensional, sino que también estamos incorporando la información sobre la variabilidad del rasgo evaluado a través de la escala de colores. Este tipo de visualización nos ayuda a identificar patrones en cómo el rasgo varía en relación con los componentes principales, proporcionando una visión clara y detallada de las relaciones entre los datos.
+:::
+
+### 🌳 Biplot rasgo 12 componentes principales
+
+```{r message=FALSE, warning=FALSE, emessage=FALSE, paged.print=FALSE}
+library(plotly)
+
+# Crear el gráfico 3D
+plot_ly(
+  data = data_climate_full,
+  x = ~PC1, y = ~PC2, z = ~PC3, 
+  color = ~rasgo12, 
+  colors = colorRampPalette(c("blue", "red"))(100),
+  type = "scatter3d", 
+  mode = "markers",
+  marker = list(size = 5, opacity = 0.8)
+) %>%
+  layout(
+    scene = list(
+      xaxis = list(title = "PC1"),
+      yaxis = list(title = "PC2"),
+      zaxis = list(title = "PC3")
+    )
+  )
+
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+library(plotly)
+library(RColorBrewer)
+
+# Definir el orden deseado para la leyenda y colores manualmente
+orden_localidades <- c("RAL", "CON", "NAL", "MAL", "LON", "ICA", "HUE", "VIR")
+colores_localidades <- c("#41b6c4", "#1d91c0", "#225ea8", "#feb24c", "#fd8d3c", "#f03b20", "#bd0026", "#800026")
+
+# Asignar los colores manualmente a las localidades
+pca_scores <- data.frame(pca_result$x)  # Extraer los scores de las observaciones
+pca_scores$localidad2 <- data_climate_full$localidad2  # Asegurarse de que localidad2 esté presente
+
+# Mapear los colores a las localidades manualmente
+colores_mapped <- colores_localidades[match(pca_scores$localidad2, orden_localidades)]
+
+```
+
+### 🌳 Biplot localidades componentes principales
+
+```{r echo= TRUE, message=FALSE, warning=FALSE}
+# Crear el gráfico 3D con la localidad ordenada y los colores personalizados
+plot_ly(
+  data = pca_scores,
+  x = ~PC1, y = ~PC2, z = ~PC3,  # Usando PC3 como variable en el eje z
+  color = I(colores_mapped),       # Usar los colores manualmente asignados
+  type = "scatter3d", mode = "markers",  # Definir el tipo de gráfico
+  marker = list(size = 4, opacity = 0.8)  # Tamaño y opacidad de los puntos
+) %>%
+  layout(
+    title = "Gráfico 3D: Relación entre PC1, PC2 y PC3",
+    scene = list(
+      xaxis = list(title = "PC1"),
+      yaxis = list(title = "PC2"),
+      zaxis = list(title = "PC3")
+    ),
+    legend = list(title = list(text = "Localidad")),  # Título para la leyenda
+    colorbar = list(
+      title = "Localidad",
+      tickvals = seq(1, length(orden_localidades), by = 1),  # valores del color
+      ticktext = orden_localidades,  # texto de las localidades
+      tickcolor = colores_localidades  # asignar colores a la leyenda
+    )
+  )
+```
+
+## 🔍 Paso 6:Modelamiento
+
+::: {align="justify"}
+El modelamiento con componentes climáticos permite realizar predicciones sobre un rasgo en particular utilizando información derivada de las condiciones ambientales. Este enfoque es particularmente útil en estudios ecológicos, agrícolas y de biodiversidad, ya que combina datos climáticos con características específicas de interés, como rasgos fisiológicos o morfológicos.
+
+Para ello, los datos climáticos se resumen en componentes principales (mediante análisis de PCA) o se utilizan directamente como predictores. A partir de esto, se aplican distintos modelos según la naturaleza de los datos y los objetivos del análisis. Entre los modelos más comúnmente utilizados se encuentran:
+
+1.  **Modelos lineales múltiples (LM):** Útiles para explorar relaciones lineales entre los componentes climáticos y un rasgo específico. Son simples, interpretables y proporcionan una base para comparaciones iniciales.
+
+2.  **Modelos Aditivos Generalizados (GAM):** Permiten modelar relaciones no lineales entre las variables climáticas y los rasgos. Son ideales cuando se sospecha de patrones complejos o curvilíneos.
+
+3.  **Modelos de Máquinas de Soporte Vectorial (SVM):** Aplicados para predicciones más avanzadas, especialmente en escenarios no lineales con múltiples dimensiones.
+
+4.  **Modelos de Bosques Aleatorios (RF):** Útiles para capturar interacciones entre múltiples variables climáticas y para identificar la importancia relativa de cada predictor.
+
+5.  **Redes Neuronales Artificiales (ANN):** Recomendados para datos grandes y complejos, donde las relaciones entre las variables pueden ser altamente no lineales y difíciles de modelar con enfoques tradicionales.
+
+El modelo seleccionado dependerá de los objetivos específicos del proyecto, el tipo de datos disponibles y el nivel de complejidad esperado. Este enfoque asegura que se aproveche al máximo la información climática para hacer predicciones precisas y relevantes, facilitando una mejor comprensión de los patrones y relaciones entre el clima y los rasgos estudiados.
+:::
+
+```{r, echo=FALSE, results='hide'}
+# Definir las variables dependientes
+variables_dependientes <- c("rasgo1", "rasgo12", "rasgo13")
+
+# Inicializar una lista para almacenar los modelos
+modelos <- list()
+
+# Loop para ajustar los modelos y almacenarlos
+for (var in variables_dependientes) {
+  # Ajustar el modelo
+  modelo <- lm(as.formula(paste(var, "~ PC1 + PC2 + PC3 + PC4")), data = data_climate_full)
+  
+  # Guardar el modelo en la lista
+  modelos[[var]] <- modelo
+  
+  # Mostrar el resumen del modelo
+  print(paste("Resumen del modelo para", var))
+  print(summary(modelo))
+}
+
+```
+
+### 🌳 Ejemplo con un modelo lineal
+
+::: {align="justify"}
+Los primeros 4 componentes principales de las variables climáticas explican el **42% de la varianza del rasgo 12**. Es decir, si bien su crecimiento está modelado climáticamente en el subgrupo de localidades de los Andes (recordar que separamos en dos grupos para mejorar el análisis), **la otra parte de la variabilidad podría estar sujeta a factores genéticos y/o edáficos** (suelo), los cuales no fueron incluidos en este ejemplo. Sin embargo, su influencia ha sido demostrada en estudios previos (*ver Joswig et al., 2021* <https://doi.org/10.1038/s41559-021-01616-8>).
+
+A continuación, se presenta el modelo lineal ajustado para el rasgo 12 en función de los **4 primeros componentes principales del clima**:
+:::
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+modelo <- lm(rasgo12 ~ PC1 + PC2 + PC3 + PC4, data = data_climate_full)
+summary(modelo)
+```
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+# Cargar librerías necesarias
+library(ggplot2)
+
+# Definir las variables dependientes
+variables_dependientes <- c("rasgo1", "rasgo12", "rasgo13")
+
+# Inicializar una lista para almacenar los modelos
+modelos <- list()
+graficos <- list()
+
+# Loop para ajustar los modelos, almacenarlos y generar gráficos
+for (var in variables_dependientes) {
+  # Ajustar el modelo de regresión múltiple
+  modelo <- lm(as.formula(paste(var, "~ PC1 + PC2 + PC3 + PC4")), data = data_climate_full)
+  
+  # Guardar el modelo en la lista
+  modelos[[var]] <- modelo
+  
+  # Obtener valores observados y predichos
+  datos_grafico <- data.frame(
+    Observado = data_climate_full[[var]],
+    Predicho = predict(modelo)
+  )
+  
+  # Generar el gráfico Observado vs Predicho
+  graficos[[var]] <- ggplot(datos_grafico, aes(x = Predicho, y = Observado)) +
+    geom_point(alpha = 0.6, color = "blue") +  # Puntos
+    geom_smooth(method = "lm", color = "black", linetype = "dashed") +  # Línea de regresión
+    geom_abline(slope = 1, intercept = 0, color = "red", linetype = "solid") +  # Línea ideal y = x
+    labs(
+      title = paste("Gráfico Observado vs Predicho para", var),
+      x = "Valor Predicho",
+      y = "Valor Observado"
+    ) +
+    theme_minimal()
+}
+
+# Mostrar los gráficos
+#print(graficos$rasgo1)
+print(graficos$rasgo12)
+#print(graficos$rasgo13)
+
+```
+
+::: tip
+📌 Consejo 6:
+
+Si encuentras que algunos paquetes no funcionan correctamente, o si has actualizado R recientemente, es recomendable usar este comando para asegurarte de que todos los paquetes estén actualizados y sean compatibles con la versión actual de R.
+:::
+
+```{r, eval=FALSE}
+update.packages(ask = FALSE, checkBuilt = TRUE)
+
+```
+
+[![📊 Estadística Aplicada - Data Science 📧 Correo: jm.gonzalezc\@outlook.com 📍 Ubicación: Chile](images/Foto-60_websize.jpg){width="213"}](https://www.linkedin.com/in/jorgemauriciog/)
